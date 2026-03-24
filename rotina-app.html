@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Rotina</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--card:#1a1a1a;--border:#252525;
+  --accent:#c8f135;--accent2:#ff6b2b;--accent3:#38bdf8;
+  --text:#f0f0f0;--muted:#555;--muted2:#2a2a2a;--radius:12px;
+}
+html{background:var(--bg);height:100%;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:480px;margin:0 auto;padding-bottom:90px;font-size:15px;}
+
+/* NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(10,10,10,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:100;padding:8px 0 max(8px,env(safe-area-inset-bottom));}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:color 0.15s;}
+.nav-btn.active{color:var(--accent);}
+.nav-icon{font-size:20px;line-height:1;}
+
+/* PAGES */
+.page{display:none;padding:0 16px;padding-top:24px;}
+.page.active{display:block;}
+.page-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:0.95;color:var(--text);letter-spacing:0.02em;margin-bottom:24px;}
+.page-title span{color:var(--accent);}
+
+/* DATE STRIP */
+.date-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px;scrollbar-width:none;}
+.date-strip::-webkit-scrollbar{display:none;}
+.date-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 12px;border-radius:10px;background:var(--card);border:1px solid var(--border);cursor:pointer;transition:all 0.15s;min-width:52px;}
+.date-chip.today{border-color:var(--accent);background:#1a2200;}
+.date-chip.selected{background:var(--accent);border-color:var(--accent);}
+.date-chip.selected .dc-day,.date-chip.selected .dc-num{color:#000;}
+.dc-day{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;}
+.dc-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);line-height:1;}
+.date-chip.today .dc-day,.date-chip.today .dc-num{color:var(--accent);}
+
+/* HABITS */
+.section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin:20px 0 10px;}
+.habit-list{display:flex;flex-direction:column;gap:6px;}
+.habit-item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;user-select:none;}
+.habit-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);transition:background 0.15s;}
+.habit-item.done::before{background:var(--accent);}
+.habit-item.done{background:#141f00;border-color:#2a3d00;}
+.habit-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-size:13px;}
+.habit-item.done .habit-check{background:var(--accent);border-color:var(--accent);color:#000;}
+.habit-info{flex:1;}
+.habit-name{font-size:14px;font-weight:500;}
+.habit-item.done .habit-name{color:#8ab800;}
+.habit-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.habit-streak{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:3px 7px;background:var(--bg);border-radius:6px;border:1px solid var(--border);white-space:nowrap;}
+.habit-item.done .habit-streak{color:var(--accent);border-color:#2a3d00;background:#0e1a00;}
+
+/* PROGRESS RING */
+.progress-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:20px;margin-bottom:20px;}
+.ring-wrap{position:relative;width:72px;height:72px;flex-shrink:0;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:6;}
+.ring-fill{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 0.5s ease;}
+.ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);}
+.progress-day{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);line-height:1;}
+.progress-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.progress-done{font-size:13px;color:var(--accent);font-weight:500;margin-top:4px;}
+
+/* TREINO TABS */
+.day-tabs{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;}
+.day-tabs::-webkit-scrollbar{display:none;}
+.day-tab{flex-shrink:0;padding:8px 14px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.15s;}
+.day-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.day-tab.rest{border-color:var(--muted2);}
+
+.section-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.sec-tab{flex:1;padding:10px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all 0.15s;text-align:center;}
+.sec-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.sec-tab.yoga.active{background:var(--accent3);border-color:var(--accent3);color:#000;}
+
+/* EXERCISES */
+.workout-block{margin-bottom:20px;}
+.block-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.block-icon{font-size:18px;}
+.block-name{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text);}
+.block-time{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:auto;}
+
+.exercise-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all 0.15s;user-select:none;}
+.exercise-card.postural{border-left:3px solid var(--accent2);}
+.exercise-card.yoga-ex{border-left:3px solid var(--accent3);}
+.exercise-card.done-ex{background:#141f00;border-color:#2a3d00;}
+.exercise-card.yoga-ex.done-ex{background:#001a2a;border-color:#003a5a;}
+.ex-left{flex:1;}
+.ex-name{font-size:13px;font-weight:500;}
+.ex-note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;max-width:220px;}
+.ex-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-left:8px;}
+.ex-sets{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);white-space:nowrap;}
+.exercise-card.yoga-ex .ex-sets{color:var(--accent3);}
+.exercise-card.done-ex .ex-sets{color:#4ade80;}
+.exercise-card.done-ex .ex-name{color:#8ab800;}
+.exercise-card.yoga-ex.done-ex .ex-name{color:#7dd3fc;}
+.hold-hint{font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;white-space:nowrap;}
+
+.rest-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;margin-bottom:12px;}
+.rest-emoji{font-size:40px;margin-bottom:12px;}
+.rest-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--muted);}
+.rest-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+.yoga-btn{width:100%;padding:14px;background:var(--card);border:1px solid var(--accent3);border-radius:10px;color:var(--accent3);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px max(36px,env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.modal-name{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);margin-bottom:4px;}
+.modal-sets{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);margin-bottom:14px;}
+.modal-note{font-size:14px;color:var(--text);line-height:1.6;background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border);}
+.modal-tip{font-size:12px;color:var(--muted);line-height:1.6;padding:0 2px;margin-bottom:16px;}
+.modal-yt{display:flex;align-items:center;gap:12px;background:#150800;border:1px solid var(--accent2);border-radius:10px;padding:14px;cursor:pointer;text-decoration:none;margin-bottom:10px;}
+.modal-yt-icon{font-size:24px;}
+.modal-yt-label{font-size:13px;color:var(--accent2);font-weight:500;}
+.modal-yt-query{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.modal-close{width:100%;padding:13px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;}
+.stat-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;}
+.week-heatmap{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:8px;}
+.heatmap-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;}
+.heatmap-row{display:flex;gap:4px;}
+.heatmap-cell{flex:1;aspect-ratio:1;border-radius:4px;background:var(--border);}
+.heatmap-cell.l1{background:#1a2d00;}.heatmap-cell.l2{background:#3d6600;}.heatmap-cell.l3{background:#7ab800;}.heatmap-cell.l4{background:var(--accent);}
+.habit-bar-item{margin-bottom:10px;}
+.hbi-top{display:flex;justify-content:space-between;margin-bottom:4px;}
+.hbi-name{font-size:12px;font-weight:500;}
+.hbi-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);}
+.hbi-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.hbi-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.5s ease;}
+
+/* EXPORT */
+.export-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;}
+.export-title{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);margin-bottom:6px;}
+.export-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:16px;font-family:'DM Mono',monospace;}
+.export-btn{width:100%;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;border:none;margin-bottom:8px;}
+.export-btn.primary{background:var(--accent);color:#000;}
+.export-btn.secondary{background:var(--card);border:1px solid var(--border);color:var(--muted);}
+.export-btn.danger{background:var(--card);border:1px solid #ff4444;color:#ff4444;}
+.export-preview{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);max-height:200px;overflow-y:auto;word-break:break-all;line-height:1.5;display:none;margin-top:10px;}
+.export-preview.visible{display:block;}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#000;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;padding:10px 20px;border-radius:20px;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:300;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- HOJE -->
+<div id="page-hoje" class="page active">
+  <div class="page-label" id="today-date"></div>
+  <div class="page-title">HOJE</div>
+  <div class="progress-card">
+    <div class="ring-wrap">
+      <svg width="72" height="72" viewBox="0 0 72 72">
+        <circle class="ring-bg" cx="36" cy="36" r="30"/>
+        <circle class="ring-fill" id="ring-fill" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+      </svg>
+      <div class="ring-text" id="ring-pct">0%</div>
+    </div>
+    <div>
+      <div class="progress-day" id="progress-day-name"></div>
+      <div class="progress-sub" id="progress-day-type"></div>
+      <div class="progress-done" id="progress-done-text"></div>
+    </div>
+  </div>
+  <div class="section-title">Hábitos Diários</div>
+  <div class="habit-list" id="daily-habits"></div>
+  <div class="section-title" id="treino-label" style="display:none">Treino do Dia</div>
+  <div class="habit-list" id="treino-habits"></div>
+</div>
+
+<!-- SEMANA -->
+<div id="page-semana" class="page">
+  <div class="page-label">7 dias</div>
+  <div class="page-title">SE<span>MANA</span></div>
+  <div class="date-strip" id="date-strip"></div>
+  <div id="week-day-habits"></div>
+</div>
+
+<!-- TREINO -->
+<div id="page-treino" class="page">
+  <div class="page-label">Protocolo</div>
+  <div class="page-title">TRE<span>INO</span></div>
+  <div class="day-tabs" id="workout-tabs"></div>
+  <div class="section-tabs" id="section-tabs" style="display:none">
+    <button class="sec-tab active" id="tab-forca" onclick="switchSec('forca')">⚡ Força</button>
+    <button class="sec-tab yoga" id="tab-yoga" onclick="switchSec('yoga')">🧘 Yoga</button>
+  </div>
+  <div id="workout-content"></div>
+</div>
+
+<!-- STATS -->
+<div id="page-stats" class="page">
+  <div class="page-label">Progresso</div>
+  <div class="page-title">STATS</div>
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="week-heatmap">
+    <div class="heatmap-title">Últimas 4 semanas</div>
+    <div class="heatmap-row" id="heatmap"></div>
+  </div>
+  <div class="section-title">Taxa por Hábito</div>
+  <div id="habit-bars"></div>
+
+  <!-- EXPORT -->
+  <div class="section-title">Exportar Dados</div>
+  <div class="export-card">
+    <div class="export-title">Enviar pro Claude</div>
+    <div class="export-desc">Copia o JSON abaixo e cola no chat para eu analisar teu progresso — hábitos, treinos, consistência, streaks.</div>
+    <button class="export-btn primary" onclick="exportData()">📋 Gerar e Copiar JSON</button>
+    <button class="export-btn secondary" onclick="togglePreview()">👁 Visualizar dados</button>
+    <div class="export-preview" id="export-preview"></div>
+  </div>
+  <div class="export-card">
+    <div class="export-title">Resetar Dados</div>
+    <div class="export-desc">Apaga todo o histórico. Irreversível.</div>
+    <button class="export-btn danger" onclick="resetData()">🗑 Resetar tudo</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="goPage('hoje',this)"><span class="nav-icon">☀️</span>hoje</button>
+  <button class="nav-btn" onclick="goPage('semana',this)"><span class="nav-icon">📅</span>semana</button>
+  <button class="nav-btn" onclick="goPage('treino',this)"><span class="nav-icon">⚡</span>treino</button>
+  <button class="nav-btn" onclick="goPage('stats',this)"><span class="nav-icon">📊</span>stats</button>
+</nav>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-name" id="modal-name"></div>
+    <div class="modal-sets" id="modal-sets"></div>
+    <div class="modal-note" id="modal-note"></div>
+    <div class="modal-tip" id="modal-tip"></div>
+    <a class="modal-yt" id="modal-yt" target="_blank" rel="noopener">
+      <span class="modal-yt-icon">▶️</span>
+      <div>
+        <div class="modal-yt-label">Ver no YouTube</div>
+        <div class="modal-yt-query" id="modal-yt-query"></div>
+      </div>
+    </a>
+    <button class="modal-close" onclick="closeModal()">Fechar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DADOS ─────────────────────────────────────────────────────────
+const HABITS = [
+  {id:'dieta',    name:'Dieta Cetogênica',  sub:'Sem carboidrato'},
+  {id:'agua_sal', name:'Água + Sal',         sub:'Eletrólitos'},
+  {id:'sol',      name:'Tomar Sol',          sub:'Manhã ou tarde'},
+  {id:'creatina', name:'Creatina 5g',        sub:'Qualquer horário'},
+  {id:'magnesio', name:'Magnésio',           sub:'Antes de dormir'},
+  {id:'release',  name:'Fascia Release',     sub:'~10h, após acordar'},
+  {id:'yoga',     name:'Yoga / Mobilidade',  sub:'Após treino ou noite'},
+  {id:'sono',     name:'Sono OK',            sub:'Dormiu bem'},
+];
+
+const SCHEDULE = [
+  {day:'Seg', type:'forca_a', label:'Força A'},
+  {day:'Ter', type:'descanso', label:'Descanso'},
+  {day:'Qua', type:'forca_b', label:'Força B'},
+  {day:'Qui', type:'descanso', label:'Descanso'},
+  {day:'Sex', type:'forca_a', label:'Força A'},
+  {day:'Sáb', type:'sprint',  label:'Sprint + Yoga'},
+  {day:'Dom', type:'descanso_total', label:'Descanso Total'},
+];
+
+const POSTURAL = {
+  name:'Ativação Postural', icon:'🎯', time:'15 min', postural:true,
+  exercises:[
+    {name:'Glute Bridge',            sets:'3 × 15',        note:'Segura 2s no topo. Glúteo, não lombar.',     tip:'Se sentir na lombar, aproxima os pés do quadril.',                           yt:'glute bridge forma correta'},
+    {name:'Dead Bug',                sets:'3 × 8 cada',    note:'Lombar colada no chão.',                     tip:'Vai devagar. Se a lombar descolar, reduz a amplitude.',                      yt:'dead bug exercise core lombar'},
+    {name:'Psoas Stretch (Lunge)',   sets:'2 × 45s cada',  note:'Joelho no chão, quadril pra frente.',        tip:'Contrai o glúteo da perna de trás. Chave pro APT.',                          yt:'psoas stretch lunge anterior pelvic tilt'},
+    {name:'Wall Slide',              sets:'3 × 10',        note:'Costas na parede, braços sobem sem sair.',   tip:'Quanto mais difícil manter o braço na parede, mais tenso tá o trapézio.',   yt:'wall slide postura ombros'},
+    {name:'Chin Tuck',               sets:'3 × 10',        note:'Queixo pra trás. Segura 5s.',                tip:'Costas na parede pra maximizar. Corrige pescoço anterior.',                  yt:'chin tuck forward head posture'},
+    {name:'Towel Scrunches',         sets:'2 × 30s',       note:'Toalha no chão, amassa com dedos dos pés.',  tip:'Descalço. Ativa músculos do arco que nunca usas.',                          yt:'towel scrunches pé chato'},
+    {name:'Calf Raise Unilateral',   sets:'2 × 12 cada',   note:'Devagar na descida (3s).',                   tip:'Segura algo só se necessário. Treina equilíbrio junto.',                    yt:'single leg calf raise tornozelo'},
+  ]
+};
+
+const YOGA_BLOCK = {
+  name:'Yoga', icon:'🧘', time:'20–30 min', isYoga:true,
+  exercises:[
+    {name:'Cat-Cow',                     sets:'10 respirações', note:'Inspira no cow, expira no cat.',           tip:'Deixa a coluna se abrir completamente em cada direção. Sem pressa.',        yt:'cat cow yoga coluna mobilidade'},
+    {name:"Child's Pose (Balasana)",     sets:'2 min',          note:'Braços estendidos. Relaxa lombar.',        tip:'Se os joelhos doerem, coloca toalha entre coxa e panturrilha.',            yt:'childs pose balasana yoga'},
+    {name:'Low Lunge (Anjaneyasana)',    sets:'2 × 45s cada',   note:'Braços ao alto, quadril pra baixo.',       tip:'Chave pro APT. Sente o quadril empurrando pra baixo e frente.',           yt:'low lunge anjaneyasana psoas stretch'},
+    {name:'Pigeon Pose',                 sets:'2 × 60s cada',   note:'Rotadores externos. Ataca o pé virado.',   tip:'Se for intenso, faz o figure four em pé primeiro.',                        yt:'pigeon pose quadril rotação'},
+    {name:'Doorway Chest Stretch',       sets:'3 × 30s',        note:'Braços a 90° na parede, avança o corpo.', tip:'Abre o peitoral que puxa os ombros pra frente.',                           yt:'doorway chest stretch ombros postura'},
+    {name:'Thread the Needle',           sets:'2 × 30s cada',   note:'Rotação torácica. Libera ombro/trapézio.', tip:'Começa a rotação do centro das costas, não do pescoço.',                  yt:'thread the needle yoga rotação torácica'},
+    {name:'Legs Up the Wall',            sets:'3–5 min',        note:'Pernas na parede, costas no chão. Final.', tip:'Recuperação passiva. Relaxa completamente. Ótimo antes de dormir.',       yt:'legs up the wall viparita karani'},
+  ]
+};
+
+const WORKOUTS = {
+  forca_a:{
+    label:'Força A — Empurrar + Core',
+    forceBlocks:[
+      POSTURAL,
+      {name:'Empurrar + Core', icon:'💪', time:'40 min', exercises:[
+        {name:'Flexão de Braço',     sets:'4 × máx',    note:'Cotovelos 45°, escápulas retraídas.',  tip:'Progride pra archer pushup quando chegar em 15+ reps com boa forma.',   yt:'flexão de braço forma calistenia'},
+        {name:'Pike Push-up',        sets:'3 × 8',      note:'Quadril alto, cabeça entre os braços.',tip:'Quanto mais vertical o corpo, mais deltóide. Progressão: handstand pushup.',yt:'pike pushup deltóide calistenia'},
+        {name:'Dips (cadeiras)',      sets:'3 × 10',     note:'Cotovelo atrás, desce até 90°.',       tip:'Não abre os cotovelos pra lado. Tríceps e peitoral inferior.',            yt:'dips cadeira tríceps forma'},
+        {name:'Prancha',             sets:'3 × 45s',    note:'Quadril neutro. Respira.',              tip:'Se o quadril subir ou lombar arquear, reduz o tempo. Qualidade > duração.',yt:'prancha core forma correta'},
+        {name:'Hollow Body Hold',    sets:'3 × 20s',    note:'Lombar no chão, pernas e braços baixos.',tip:'Base de toda calistenia avançada. Domina isso antes de progredir.',     yt:'hollow body hold calistenia'},
+      ]}
+    ]
+  },
+  forca_b:{
+    label:'Força B — Pernas + Glúteo',
+    forceBlocks:[
+      POSTURAL,
+      {name:'Pernas + Glúteo', icon:'🦵', time:'40 min', exercises:[
+        {name:'Agachamento Búlgaro', sets:'4 × 8 cada', note:'Pé traseiro elevado. Vai devagar.',     tip:'Joelho vai sobre o pé, não colapsa pra dentro. Melhor leg sem peso.',  yt:'agachamento búlgaro forma correta'},
+        {name:'Hip Thrust (mochila)',sets:'4 × 12',     note:'Ombros no sofá, mochila no quadril.',   tip:'No topo, quadril paralelo ao chão. É o glúteo que empurra, não a lombar.',yt:'hip thrust peso corporal sofá'},
+        {name:'Step-up (cadeira)',   sets:'3 × 10 cada',note:'Empurra pelo calcanhar.',               tip:'Não usa impulso da perna de baixo. Testa a força unilateral.',           yt:'step up exercise cadeira forma'},
+        {name:'Glute Bridge Unilat.',sets:'3 × 12 cada',note:'Uma perna estendida. Isola glúteo.',    tip:'Corrige desequilíbrio entre lados. Comum ter um lado bem mais fraco.',   yt:'glute bridge unilateral'},
+        {name:'Clamshell',          sets:'3 × 15 cada',note:'Deitado de lado, abre joelho.',          tip:'Glúteo médio fraco = pé virado pra fora. Esse exercício corrige.',      yt:'clamshell glúteo médio'},
+      ]}
+    ]
+  },
+  sprint:{
+    label:'Sprint + Yoga',
+    forceBlocks:[
+      {name:'Sprint HIIT', icon:'🏃', time:'20 min', exercises:[
+        {name:'Aquecimento',       sets:'5 min',       note:'Caminhada antes de qualquer sprint.',  tip:'Nunca pula. Tendão de Aquiles frio + sprint = lesão.',                  yt:'aquecimento corrida'},
+        {name:'Sprint máximo',     sets:'6–8 rounds',  note:'30s a fundo / 90s caminhando.',        tip:'Aumenta rounds a cada semana. Começa com 6, vai pra 8 em 2 semanas.',   yt:'sprint hiit treino intervalado'},
+        {name:'Desaceleração',     sets:'3 min',       note:'Caminha até FC baixar.',               tip:'Não para bruscamente. Deixa o coração desacelerar gradualmente.',       yt:''},
+      ]}
+    ]
+  },
+  descanso:{label:'Descanso', rest:true, sub:'Caminhada leve ou fascia release se quiser'},
+  descanso_total:{label:'Descanso Total', rest:true, sub:'Recuperação completa. Dorme bem.'},
+};
+
+// ── STORAGE ───────────────────────────────────────────────────────
+const ld = d => { try{return JSON.parse(localStorage.getItem('h_'+d)||'{}')}catch{return {}} };
+const sd = (d,v) => localStorage.setItem('h_'+d, JSON.stringify(v));
+const lw = d => { try{return JSON.parse(localStorage.getItem('w_'+d)||'{}')}catch{return {}} };
+const sw = (d,v) => localStorage.setItem('w_'+d, JSON.stringify(v));
+
+// ── UTILS ─────────────────────────────────────────────────────────
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const dStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const getSched = ds => { const dow=new Date(ds+'T12:00:00').getDay(); return SCHEDULE[[6,0,1,2,3,4,5][dow]]; };
+const fmtDate = ds => new Date(ds+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+let currentDate = todayStr();
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function calcStreak(id, from){
+  let s=0, d=new Date(from+'T12:00:00');
+  for(let i=0;i<90;i++){
+    if(ld(dStr(d))[id]) s++; else break;
+    d.setDate(d.getDate()-1);
+  }
+  return s;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function goPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='semana') renderSemana();
+  if(id==='treino') renderTreino();
+  if(id==='stats')  renderStats();
+}
+
+// ── HOJE ──────────────────────────────────────────────────────────
+function renderHoje(){
+  const sched=getSched(currentDate);
+  document.getElementById('today-date').textContent=fmtDate(currentDate);
+  document.getElementById('progress-day-name').textContent=sched.day;
+  document.getElementById('progress-day-type').textContent=sched.label;
+
+  const dl=document.getElementById('daily-habits');
+  dl.innerHTML='';
+  HABITS.forEach(h=>{
+    const done=!!ld(currentDate)[h.id];
+    const streak=calcStreak(h.id,currentDate);
+    const el=document.createElement('div');
+    el.className='habit-item'+(done?' done':'');
+    el.innerHTML=`<div class="habit-check">${done?'✓':''}</div><div class="habit-info"><div class="habit-name">${h.name}</div><div class="habit-sub">${h.sub}</div></div><div class="habit-streak">${streak>0?streak+'🔥':'—'}</div>`;
+    el.onclick=()=>toggleHabit(h.id,currentDate);
+    dl.appendChild(el);
+  });
+
+  const tl=document.getElementById('treino-habits');
+  const tlabel=document.getElementById('treino-label');
+  tl.innerHTML='';
+  const w=WORKOUTS[sched.type];
+  if(w&&!w.rest){
+    tlabel.style.display='block';
+    const done=!!lw(currentDate)['treino_feito'];
+    const el=document.createElement('div');
+    el.className='habit-item'+(done?' done':'');
+    el.innerHTML=`<div class="habit-check">${done?'✓':''}</div><div class="habit-info"><div class="habit-name">Treino Completo</div><div class="habit-sub">${w.label}</div></div><div class="habit-streak">⚡</div>`;
+    el.onclick=()=>{const d=lw(currentDate);d['treino_feito']=!d['treino_feito'];sw(currentDate,d);renderHoje();if(d['treino_feito'])showToast('⚡ Treino marcado!');};
+    tl.appendChild(el);
+  } else { tlabel.style.display='none'; }
+  updateRing();
+}
+
+function toggleHabit(id,date){
+  const d=ld(date);d[id]=!d[id];sd(date,d);
+  renderHoje();
+  if(d[id]) showToast('✓ '+HABITS.find(h=>h.id===id).name);
+}
+
+function updateRing(){
+  const dayD=ld(currentDate), wD=lw(currentDate), sched=getSched(currentDate), w=WORKOUTS[sched.type];
+  let total=HABITS.length, done=HABITS.filter(h=>dayD[h.id]).length;
+  if(w&&!w.rest){total++;if(wD['treino_feito'])done++;}
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('ring-fill').style.strokeDashoffset=188.5-(188.5*pct/100);
+  document.getElementById('ring-pct').textContent=pct+'%';
+  document.getElementById('progress-done-text').textContent=done+' de '+total+' hábitos';
+}
+
+// ── SEMANA ────────────────────────────────────────────────────────
+let selWeek=todayStr();
+function renderSemana(){
+  const strip=document.getElementById('date-strip');
+  strip.innerHTML='';
+  const today=todayStr();
+  for(let i=-3;i<=3;i++){
+    const d=new Date(today+'T12:00:00');d.setDate(d.getDate()+i);
+    const ds=dStr(d);
+    const chip=document.createElement('div');
+    chip.className='date-chip'+(ds===today?' today':'')+(ds===selWeek?' selected':'');
+    const dn=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    chip.innerHTML=`<div class="dc-day">${dn[d.getDay()]}</div><div class="dc-num">${d.getDate()}</div>`;
+    chip.onclick=()=>{selWeek=ds;renderSemana();};
+    strip.appendChild(chip);
+  }
+
+  const el=document.getElementById('week-day-habits');
+  el.innerHTML='';
+  const sched=getSched(selWeek);
+  const dayD=ld(selWeek);
+  const wD=lw(selWeek);
+
+  const lbl=document.createElement('div');lbl.className='section-title';lbl.textContent=sched.day+' — '+sched.label;el.appendChild(lbl);
+
+  const hl=document.createElement('div');hl.className='habit-list';
+  HABITS.forEach(h=>{
+    const done=!!dayD[h.id];
+    const item=document.createElement('div');
+    item.className='habit-item'+(done?' done':'');
+    item.innerHTML=`<div class="habit-check">${done?'✓':''}</div><div class="habit-info"><div class="habit-name">${h.name}</div></div>`;
+    item.onclick=()=>{const d2=ld(selWeek);d2[h.id]=!d2[h.id];sd(selWeek,d2);renderSemana();if(selWeek===todayStr())renderHoje();};
+    hl.appendChild(item);
+  });
+  el.appendChild(hl);
+
+  const w=WORKOUTS[sched.type];
+  if(w&&!w.rest){
+    const tl=document.createElement('div');tl.className='section-title';tl.textContent='Treino';el.appendChild(tl);
+    const hl2=document.createElement('div');hl2.className='habit-list';
+    const done=!!wD['treino_feito'];
+    const item=document.createElement('div');
+    item.className='habit-item'+(done?' done':'');
+    item.innerHTML=`<div class="habit-check">${done?'✓':''}</div><div class="habit-info"><div class="habit-name">Treino Completo</div><div class="habit-sub">${w.label}</div></div>`;
+    item.onclick=()=>{const d2=lw(selWeek);d2['treino_feito']=!d2['treino_feito'];sw(selWeek,d2);renderSemana();if(selWeek===todayStr())renderHoje();};
+    hl2.appendChild(item);el.appendChild(hl2);
+  }
+}
+
+// ── TREINO ────────────────────────────────────────────────────────
+let activeDay=0, activeSec='forca';
+
+function switchSec(s){
+  activeSec=s;
+  document.getElementById('tab-forca').className='sec-tab'+(s==='forca'?' active':'');
+  document.getElementById('tab-yoga').className='sec-tab yoga'+(s==='yoga'?' active':'');
+  renderWorkoutContent();
+}
+
+function renderTreino(){
+  const tabs=document.getElementById('workout-tabs');
+  tabs.innerHTML='';
+  SCHEDULE.forEach((s,i)=>{
+    const btn=document.createElement('button');
+    btn.className='day-tab'+(i===activeDay?' active':'')+(s.type.includes('descanso')?' rest':'');
+    btn.textContent=s.day;
+    btn.onclick=()=>{activeDay=i;activeSec='forca';renderTreino();};
+    tabs.appendChild(btn);
+  });
+  const w=WORKOUTS[SCHEDULE[activeDay].type];
+  const st=document.getElementById('section-tabs');
+  if(w&&!w.rest){
+    st.style.display='flex';
+    document.getElementById('tab-forca').className='sec-tab'+(activeSec==='forca'?' active':'');
+    document.getElementById('tab-yoga').className='sec-tab yoga'+(activeSec==='yoga'?' active':'');
+  } else { st.style.display='none'; }
+  renderWorkoutContent();
+}
+
+function renderWorkoutContent(){
+  const sched=SCHEDULE[activeDay];
+  const w=WORKOUTS[sched.type];
+  const content=document.getElementById('workout-content');
+  content.innerHTML='';
+
+  if(w.rest){
+    content.innerHTML=`<div class="rest-card"><div class="rest-emoji">🌿</div><div class="rest-title">${w.label}</div><div class="rest-sub">${w.sub}</div></div>`;
+    const btn=document.createElement('button');
+    btn.className='yoga-btn';btn.textContent='🧘 Ver Yoga';
+    btn.onclick=()=>{activeSec='yoga';document.getElementById('section-tabs').style.display='flex';switchSec('yoga');};
+    content.appendChild(btn);
+    if(activeSec==='yoga') renderBlocks(content,[YOGA_BLOCK],sched);
+    return;
+  }
+
+  if(activeSec==='yoga'){
+    renderBlocks(content,[YOGA_BLOCK],sched);
+  } else {
+    renderBlocks(content,w.forceBlocks,sched);
+  }
+}
+
+function renderBlocks(container, blocks, sched){
+  const wData=lw(todayStr());
+  blocks.forEach(block=>{
+    const blockEl=document.createElement('div');
+    blockEl.className='workout-block';
+    blockEl.innerHTML=`<div class="block-header"><span class="block-icon">${block.icon}</span><span class="block-name">${block.name}</span><span class="block-time">${block.time}</span></div>`;
+    block.exercises.forEach((ex,ei)=>{
+      const exId=sched.type+'_'+(block.isYoga?'yoga':block.name)+'_'+ei;
+      const done=!!wData[exId];
+      const isYoga=!!block.isYoga;
+      const isPost=!!block.postural;
+      const card=document.createElement('div');
+      card.className='exercise-card'+(isPost?' postural':'')+(isYoga?' yoga-ex':'')+(done?' done-ex':'');
+      card.innerHTML=`<div class="ex-left"><div class="ex-name">${ex.name}</div>${ex.note?`<div class="ex-note">${ex.note}</div>`:''}</div><div class="ex-right"><div class="ex-sets">${done?'✓':ex.sets}</div><div class="hold-hint">segura</div></div>`;
+
+      // tap = toggle, long press = modal
+      let timer=null,moved=false;
+      card.addEventListener('touchstart',e=>{moved=false;timer=setTimeout(()=>{if(!moved)openModal(ex);},500);});
+      card.addEventListener('touchmove',()=>{moved=true;clearTimeout(timer);});
+      card.addEventListener('touchend',()=>{
+        if(!moved&&timer){clearTimeout(timer);}
+      });
+      card.addEventListener('click',()=>{
+        if(moved)return;
+        const d=lw(todayStr());d[exId]=!d[exId];sw(todayStr(),d);
+        renderTreino();renderHoje();
+      });
+      blockEl.appendChild(card);
+    });
+    container.appendChild(blockEl);
+  });
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+function openModal(ex){
+  document.getElementById('modal-name').textContent=ex.name;
+  document.getElementById('modal-sets').textContent=ex.sets;
+  document.getElementById('modal-note').textContent=ex.note||'';
+  document.getElementById('modal-tip').textContent=ex.tip||'';
+  const q=ex.yt||ex.name+' como fazer';
+  document.getElementById('modal-yt').href='https://www.youtube.com/results?search_query='+encodeURIComponent(q);
+  document.getElementById('modal-yt-query').textContent=q;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('modal-overlay'))closeModal(); }
+
+// ── STATS ─────────────────────────────────────────────────────────
+function renderStats(){
+  const today=todayStr();
+  let totalDays=0,perfectDays=0,totalChecks=0,currentStreak=0;
+  const cells=[];
+  for(let i=27;i>=0;i--){
+    const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-i);
+    const ds=dStr(d);const data=ld(ds);
+    const count=HABITS.filter(h=>data[h.id]).length;
+    cells.push({pct:count/HABITS.length});
+    if(count>0)totalDays++;
+    if(count===HABITS.length)perfectDays++;
+    totalChecks+=count;
+  }
+  for(let i=0;i<28;i++){
+    const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-i);
+    if(HABITS.filter(h=>ld(dStr(d))[h.id]).length>0)currentStreak++;else break;
+  }
+  const grid=document.getElementById('stats-grid');grid.innerHTML='';
+  [{num:currentStreak,label:'Sequência Atual'},{num:perfectDays,label:'Dias Perfeitos'},{num:totalDays,label:'Dias Ativos'},{num:totalChecks,label:'Total de Checks'}].forEach(s=>{
+    const card=document.createElement('div');card.className='stat-card';
+    card.innerHTML=`<div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div>`;
+    grid.appendChild(card);
+  });
+  const hm=document.getElementById('heatmap');hm.innerHTML='';
+  cells.forEach(c=>{
+    const cell=document.createElement('div');
+    const lv=c.pct===0?0:c.pct<0.3?1:c.pct<0.6?2:c.pct<1?3:4;
+    cell.className='heatmap-cell'+(lv?' l'+lv:'');
+    hm.appendChild(cell);
+  });
+  const bars=document.getElementById('habit-bars');bars.innerHTML='';
+  HABITS.forEach(h=>{
+    let count=0;
+    for(let i=0;i<28;i++){const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-i);if(ld(dStr(d))[h.id])count++;}
+    const pct=Math.round(count/28*100);
+    const item=document.createElement('div');item.className='habit-bar-item';
+    item.innerHTML=`<div class="hbi-top"><span class="hbi-name">${h.name}</span><span class="hbi-pct">${pct}%</span></div><div class="hbi-track"><div class="hbi-fill" style="width:${pct}%"></div></div>`;
+    bars.appendChild(item);
+  });
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────
+function buildExport(){
+  const today=todayStr();
+  const result={
+    exportDate: today,
+    diasAtivos: 0,
+    diasPerfeitos: 0,
+    streakAtual: 0,
+    habitRates: {},
+    diasDetalhados: {}
+  };
+
+  // habit rates últimos 28 dias
+  HABITS.forEach(h=>result.habitRates[h.name]=0);
+  let streakOk=true;
+  for(let i=0;i<28;i++){
+    const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-i);
+    const ds=dStr(d);
+    const data=ld(ds);
+    const wdata=lw(ds);
+    const count=HABITS.filter(h=>data[h.id]).length;
+    if(count>0)result.diasAtivos++;
+    if(count===HABITS.length)result.diasPerfeitos++;
+    if(streakOk&&count>0)result.streakAtual++;else streakOk=false;
+    HABITS.forEach(h=>{if(data[h.id])result.habitRates[h.name]++;});
+    // só inclui dias com algum dado
+    const hasData=count>0||Object.keys(wdata).length>0;
+    if(hasData){
+      result.diasDetalhados[ds]={
+        habitos: Object.fromEntries(HABITS.map(h=>[h.id,!!data[h.id]])),
+        treino: wdata
+      };
+    }
+  }
+  // converte rates pra percentual
+  HABITS.forEach(h=>{ result.habitRates[h.name]=Math.round(result.habitRates[h.name]/28*100)+'%'; });
+  return result;
+}
+
+function exportData(){
+  const data=buildExport();
+  const json=JSON.stringify(data,null,2);
+  navigator.clipboard.writeText(json).then(()=>{
+    showToast('📋 Copiado! Cola no chat.');
+  }).catch(()=>{
+    // fallback: mostra o preview pra copiar manualmente
+    const preview=document.getElementById('export-preview');
+    preview.textContent=json;
+    preview.classList.add('visible');
+    showToast('Copia o texto abaixo');
+  });
+}
+
+function togglePreview(){
+  const data=buildExport();
+  const preview=document.getElementById('export-preview');
+  if(preview.classList.contains('visible')){
+    preview.classList.remove('visible');
+  } else {
+    preview.textContent=JSON.stringify(data,null,2);
+    preview.classList.add('visible');
+  }
+}
+
+function resetData(){
+  if(confirm('Tem certeza? Isso apaga TODO o histórico.')){
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.startsWith('h_')||k.startsWith('w_'))keys.push(k);
+    }
+    keys.forEach(k=>localStorage.removeItem(k));
+    renderHoje();renderStats();
+    showToast('🗑 Dados resetados');
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+renderHoje();
+activeDay=[[6,0,1,2,3,4,5][new Date().getDay()]];
+activeDay=typeof activeDay==='object'?activeDay[0]:activeDay;
+</script>
+</body>
+</html>
